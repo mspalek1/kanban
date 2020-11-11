@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Kanban.Common;
+using Kanban.Data;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,7 +22,25 @@ namespace Kanban
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<AppSettings>(Configuration);
             services.AddControllersWithViews();
+            services.AddDbContext<KanbanContext>(options =>
+            {
+                var appSettings = Configuration.Get<AppSettings>();
+                var sqlProvider = appSettings.SqlProvider; // Configuration.GetValue("SqlProvider", "sqlserver");
+                Console.WriteLine($"appsettings.SqlProvider: {sqlProvider}");
+                if (sqlProvider == "sqlite")
+                {
+                    options.UseSqlite(Configuration.GetConnectionString($"KanbanContext_{sqlProvider}"));
+                }
+                else
+                {
+                    sqlProvider = "sqlserver";
+                    options.UseSqlServer(Configuration.GetConnectionString($"KanbanContext_{sqlProvider}"));
+                }
+                Console.WriteLine($" '{sqlProvider}' database provider is used");
+
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,7 +67,7 @@ namespace Kanban
             {
                 endpoints.MapControllerRoute(
                     name: "default",
-                    pattern: "{controller=Home}/{action=Index}/{id?}");
+                    pattern: "{controller=Project}/{action=Index}/{id?}");
             });
         }
     }
